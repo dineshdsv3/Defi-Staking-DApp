@@ -5,6 +5,7 @@ import './DaiToken.sol';
 
 contract TokenFarm {
 
+    address public owner;
     string public name = "Token Farm";
     DsvToken public dsvToken;
     DaiToken public daiToken; 
@@ -18,10 +19,14 @@ contract TokenFarm {
     constructor(DsvToken _dsvToken, DaiToken _daiToken) public {
         dsvToken = _dsvToken;
         daiToken = _daiToken;
+        owner = msg.sender;
     }
 
     // Stakes Tokens (Deposit)
     function stakeTokens(uint _amount) public {
+        // Require Amount greater than zero
+        require(_amount > 0, "Amount cant be zero");
+
         // Transfer Mock Dai tokens to this contract for staking
         daiToken.transferFrom(msg.sender, address(this), _amount);
 
@@ -38,8 +43,37 @@ contract TokenFarm {
         hasStaked[msg.sender] = true;
     }
 
-    // Unstaking Tokens (Withdraw)
-
     // Issuing Tokens (Interest)
+    function issueTokens() public {
+        require(msg.sender == owner, "Caller must be owner");
 
+        // Issuing DSV Tokens for all the stakers
+        for(uint i = 0; i < stakers.length; i++) {
+        // For every user who staked inside this app fetch their staking balance and 
+        // send same amount of dsvTokens
+           address recipient = stakers[i]; 
+           uint balance = stakingBalance[recipient];
+           if(balance > 0) {
+           dsvToken.transfer(recipient, balance);
+           }
+        }
+    }
+
+    // Unstaking Tokens (Withdraw)
+    function unstakeTokens() public {
+        // Fetch staking balance
+        uint balance = stakingBalance[msg.sender];
+
+        // Require amount greater than 0
+        require(balance > 0, 'balance must be greater than 0');
+
+        // Transfer Mock Dai Tokens to this contract for staking
+        daiToken.transfer(msg.sender, balance);
+
+        // Reset Staking balance
+        stakingBalance[msg.sender] = 0;
+
+        // Update staking status
+        isStaking[msg.sender] = false;
+    }
 }
